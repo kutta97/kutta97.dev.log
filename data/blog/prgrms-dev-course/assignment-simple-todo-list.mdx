@@ -1,0 +1,533 @@
+---
+title: '트리와 트리 순회 순서를 출력하는 Vanilla JS 앱 만들기'
+date: '2023-06-23'
+lastmod: '2023-06-23'
+tags: ['vanilla-js', 'data-structure', 'tree-traversal']
+draft: false
+summary: 'Vanilla JS 와 CSS 만 사용해서 트리와 트리 순회 순서를 출력하는 Vanilla JS 앱 만들기'
+authors: ['default']
+---
+
+<p align="center">
+  <img src="/static/images/prgrms-dev-course/tree_traversal_demo.gif" />
+</p>
+
+| 💡: 트리 UI 는 이미지를 사용하지 않고, HTML/CSS 와 JavaScript 만을 가지고 구현했다.
+
+전체 코드는 [여기](https://github.com/prgrms-fe-devcourse/FEDC4-2_JavaScript_ES6/tree/4/%232_yanghyejin_working)서 확인할 수 있고,
+코드리뷰 과정이 궁금하다면 [PR](https://github.com/prgrms-fe-devcourse/FEDC4-2_JavaScript_ES6/pull/5) 에서 확인할 수 있다.
+
+<br />
+
+# 과제: Tree 의 전위, 중위, 후위 순회를 직접 구현하기
+
+Vanilla JS 를 사용해서 "트리의 순회 방식을 직접 구현하고, 트라이를 사용하여 자동완성을 구현하기"라는 첫 번째 과제를 받았다.
+
+트리 과제는 학교에서 재귀를 이용한 트리 순회 방식을 배운 적이 있었기 때문에 그리 어렵지 않게 풀 수 있었다.
+
+```javascript
+export default class Tree {
+  constructor(node) {
+    this.root = node;
+  }
+
+  preOrder(node = this.root, nodeOrder = []) {
+    if (node === null) return nodeOrder;
+    nodeOrder.push(node.value);
+    nodeOrder.push(...this.preOrder(node.left));
+    nodeOrder.push(...this.preOrder(node.right));
+    return nodeOrder;
+  }
+
+  inOrder(node = this.root, nodeOrder = []) {
+    if (node === null) return nodeOrder;
+    nodeOrder.push(...this.inOrder(node.left));
+    nodeOrder.push(node.value);
+    nodeOrder.push(...this.inOrder(node.right));
+    return nodeOrder;
+  }
+
+  postOrder(node = this.root, nodeOrder = []) {
+    if (node === null) return nodeOrder;
+    nodeOrder.push(...this.postOrder(node.left));
+    nodeOrder.push(...this.postOrder(node.right));
+    nodeOrder.push(node.value);
+    return nodeOrder;
+  }
+}
+```
+
+너무 간단한 과제라는 생각이 들어서, 조금 욕심이 들었다.
+
+과제에서는 트리의 형태와, 트리 순회의 결과를 확인할 수 있는 코드를 작성하라는 요구사항이 없었지만,
+"트리 형태와 순회 결과를 시각적으로 확인할 수 있다면 좋지 않을까?🤔"라는 생각이 들었다.
+
+Vanilla JS 로 프론트엔드 코드를 작성하는 연습을 해보고 싶어서 에라 모르겠다! 하고 한 번 시도해 보았다.
+
+<br />
+<br />
+
+# Tree 의 구조를 DOM Element 로 시각화하기
+
+트리가 어떤 형태로 이루어져 있는지 시각적으로 볼 수 있는 상태에서 트리의 순회 결과를 확인하는 것이 사용성 측면에서 좋을 것 같았다.
+
+트리의 형태를 보여줄 수 있는 방법은 두 가지가 생각났다
+
+- 현재 트리의 구조를 이미지로 보여주기
+- 현재 트리의 구조를 HTML 과 CSS 로 보여주기
+
+트리의 구조를 이미지로 보여주는 방법은, 트리의 구조가 변경될 때마다 이미지를 업데이트해주어야 하므로 마음에 들지 않았다.
+모름지기 프론트엔드 개발자라면 **트리 UI 정도는 HTML 과 CSS 만 가지고 구현할 수 있어야 하지 않나?** 라는 생각이 들었다.
+
+그래서 순수 HTML 과 CSS 만 가지고 트리 UI 를 구현하기로 했다.
+
+과제에서는 이진트리를 순회하도록 되어 있어서, 이진트리인 treeData 를 재귀적으로 순회하면서 이를 DOM element 로 만들어주는 코드를 작성했다.
+
+## BinaryTree 컴포넌트
+
+위에서 만든 `Tree` class 로 만든 Tree 데이터의 구조를 시각화할 수 있는 `BinaryTree` 컴포넌트의 코드이다.
+
+```javascript
+import DOM from '../consts/dom.js';
+
+export default class BinaryTree {
+  data;
+
+  constructor({ $target }) {
+    const $binaryTree = document.createElement('div');
+    this.$binaryTree = $binaryTree;
+    $binaryTree.className = DOM.COMPONENTS.TREE.BINATY_TREE;
+    $target.appendChild($binaryTree);
+  }
+
+  setState(treeData) {
+    this.data = treeData;
+    this.render();
+  }
+
+  createBinaryTree(node) {
+    if (node === null) {
+      return null;
+    }
+    const div = document.createElement('div');
+    const span = document.createElement('span');
+    span.textContent = node.value;
+    div.appendChild(span);
+
+    const leftNode = this.createBinaryTree(node.left);
+    const rightNode = this.createBinaryTree(node.right);
+
+    if (leftNode !== null) {
+      div.appendChild(leftNode);
+    }
+    if (rightNode !== null) {
+      div.appendChild(rightNode);
+    }
+
+    return div;
+  }
+
+  render() {
+    const root = this.data;
+    const binaryTree = this.createBinaryTree(root);
+    this.$binaryTree.appendChild(binaryTree);
+  }
+}
+```
+
+### 1. setState()
+
+```javascript
+setState(treeData) {
+  this.data = treeData;
+  this.render();
+}
+```
+
+BinaryTree 컴포넌트는 처음 생성했을 때는 treeData 를 가지고 있지 않다.
+`setState()` 함수를 사용해서 treeData state 를 초기화 해주면, `render()` 함수가 호출되어 트리 데이터를 그릴 수 있도록 만들었다.
+
+### 2. render()
+
+```javascript
+render() {
+  const root = this.data;
+  const binaryTree = this.createBinaryTree(root);
+  this.$binaryTree.appendChild(binaryTree);
+}
+```
+
+`render()` 함수는 BinaryTree 를 실제로 그려주는, 즉 랜더링하는 역할이다.
+트리의 구조 대로 만들어진 DOM을 만들어 반환하는 createBinaryTree() 함수를 호출하고,
+반환된 DOM 을 `this.$binaryTree` 에 append 해준다.
+
+### 3. createBinaryTree()
+
+```javascript
+createBinaryTree(node) {
+  if (node === null) {
+    return null;
+  }
+  const div = document.createElement('div');
+  const span = document.createElement('span');
+  span.textContent = node.value;
+  div.appendChild(span);
+
+  const leftNode = this.createBinaryTree(node.left);
+  const rightNode = this.createBinaryTree(node.right);
+
+  if (leftNode !== null) {
+    div.appendChild(leftNode);
+  }
+  if (rightNode !== null) {
+    div.appendChild(rightNode);
+  }
+
+  return div;
+}
+```
+
+`render()` 함수에서 내부적으로 호출하는 `createBinaryTree()`함수이다.
+`createBinaryTree()`에 root 노드를 전달하면, 먼저 현재 노드의 Dom Element 를 만들어두고,
+현재 노드의 왼쪽과 오른쪽 자식노드를 createBinaryTree 로 넘겨서 각 자식노드의 Dom Element 를 만든다.
+그 다음, 각 자식 노드가 존재하는 경우에 현재의 Dom Element 에 append 해준다.
+
+어떻게 보면, 트리의 전위 순회를 응용하여 DOM Element 를 만들어주는 방식이라고 볼 수 있다.
+
+## BinaryTree 컴포넌트에 스타일 적용하기
+
+BinaryTree 컴포넌트는 트리구조와 동일한 형태의 DOM 요소로 구성되어 있지만, 이대로 브라우저에서 확인하면 트리처럼 보이지 않는다.
+
+BinaryTree 컴포넌트를 실제 이진 트리 처럼 보이게 하기 위해서는 style 을 적용해주어야 한다.
+
+이 부분은 도저히 혼자서 생각해내기 어려워서 구글링의 도움을 받았다.
+grid display 속성을 이용해서 자식 요소를 좌우로 정렬해주는 역할인 것 같다.
+
+```css
+.binary-tree {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.binary-tree div {
+  display: grid;
+  place-items: start center;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr auto;
+  gap: 10px;
+  margin-top: 10px;
+  position: relative;
+}
+
+.binary-tree span {
+  grid-column: 1 / 3;
+  border: 1px solid;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  margin: auto auto;
+}
+
+.binary-tree span::before {
+  content: '';
+  position: absolute;
+  width: 50%;
+  height: 20px;
+  left: 50%;
+  top: 0;
+
+  transform: translateY(-100%);
+  background: linear-gradient(
+    to top left,
+    rgba(255, 255, 255, 0) calc(50% - 1px),
+    white,
+    rgba(255, 255, 255, 0) calc(50% + 1px)
+  );
+}
+
+.binary-tree :nth-child(3) > span::before {
+  left: auto;
+  right: 50%;
+  background: linear-gradient(
+    to top right,
+    rgba(255, 255, 255, 0) calc(50% - 1px),
+    white,
+    rgba(255, 255, 255, 0) calc(50% + 1px)
+  );
+}
+
+.binary-tree > div > span::before {
+  content: none;
+}
+```
+
+❗️위의 CSS 코드로는 모든 리프노드의 레벨이 동일한 포화 이진 트리만 표현할 수 있다는 문제가 있다.
+JS와 CSS 를 더 공부해서 포화 이진 트리가 아닌 경우에도 트리를 출력할 수 있도록 수정해보고 싶다.
+
+## 브라우저에서 BinaryTree 컴포넌트 확인하기
+
+브라우저에서 실행시켜보면 다음과 같이 BinaryTree 컴포넌트가 출력된다.
+
+<p align="center">
+  <img src="/static/images/prgrms-dev-course/binary_tree_component.png" />
+</p>
+
+<br />
+
+# 트리의 순회 순서를 출력하는 UI 와 버튼 만들기
+
+이제 트리가 어떤 형태로 이루어져 있는지 시각적으로 확인할 수 있게 되었다.
+이제는 트리의 순회 결과를 확인할 수 있는 UI 를 만들어야 하는데, 프로그래머스 코딩테스트 연습 화면에서 아이디어를 얻었다.
+(사실 이 앱의 전체적인 디자인 스타일도 프로그래머스 사이트를 모방하긴 했다ㅎㅎ)
+
+각각의 순회 이름 버튼을 눌렀을 때, 해당 트리 순회의 결과를 확인할 수 있도록 하면 좋을 것 같았다.
+
+트리의 순회 결과를 출력하는 TreeOrderDisplayConsole 과, Button 리스트를 만들어 주었다.
+
+## TreeOrderDisplayConsole 컴포넌트
+
+`TreeOrderDisplayConsole` 컴포넌트는 출력할 트리순회의 종류와, 순회 순서를 state 로 가진다.
+
+```javascript
+import DOM from '../consts/dom.js';
+
+export default class TreeOrderDisplayConsole {
+  data = {
+    name: '',
+    order: [],
+  };
+
+  constructor({ $target }) {
+    const $treeOrderdisplay = document.createElement('div');
+    this.$treeOrderdisplay = $treeOrderdisplay;
+    $treeOrderdisplay.className = DOM.WRAPPER.TREE.OREDER_DISPLAY;
+    $target.appendChild($treeOrderdisplay);
+  }
+
+  setState(treeOrder) {
+    this.data = treeOrder;
+    this.render();
+  }
+
+  render() {
+    const { name, order } = this.data;
+    this.$treeOrderdisplay.innerHTML = `
+      <h2>${name}</h2>
+      <p>${order.join(' -> ')}</p>
+    `;
+  }
+}
+```
+
+## TreeOrderDisplayButtonContainer 컴포넌트
+
+버튼 리스트는 각각 만들 버튼의 name 과 textContent 를 정의해 놓고, forEach 문을 이용해서 버튼을 초기화해주었다.
+
+```javascript
+import DOM from '../consts/dom.js';
+import TREE_TRAVERSE from '../consts/tree.js';
+import Button from './Button.js';
+
+const buttonList = [
+  {
+    name: TREE_TRAVERSE.PREORDER.NAME,
+    textContent: TREE_TRAVERSE.PREORDER.BUTTON_TEXT,
+  },
+  {
+    name: TREE_TRAVERSE.INORDER.NAME,
+    textContent: TREE_TRAVERSE.INORDER.BUTTON_TEXT,
+  },
+  {
+    name: TREE_TRAVERSE.POSTORDER.NAME,
+    textContent: TREE_TRAVERSE.POSTORDER.BUTTON_TEXT,
+  },
+];
+
+export default class TreeOrderDisplayButtonContainer {
+  constructor({ $target, onClick }) {
+    const $buttonWrapper = document.createElement('div');
+    this.$buttonWrapper = $buttonWrapper;
+    $buttonWrapper.className = DOM.WRAPPER.TREE.BUTTON;
+    $target.appendChild($buttonWrapper);
+
+    buttonList.forEach(({ name, textContent }) => {
+      new Button({
+        $target: this.$buttonWrapper,
+        name: name,
+        textContent: textContent,
+        onClick: onClick,
+      });
+    });
+  }
+}
+```
+
+## 브라우저에서 `TreeOrderDisplayConsole` 과 `TreeOrderDisplayButtonContainer` 컴포넌트 확인하기
+
+브라우저에서 실행시켜보면 트리 순회 순서 및 버튼 컴포넌트도 잘 출력된다.
+
+<p align="center">
+  <img src="/static/images/prgrms-dev-course/tree_order_display_component.png" />
+</p>
+
+<br />
+
+# 모든 컴포넌트를 하나의 TreeView 에서 관리하기
+
+위에서 만든 `TreeOrderDisplayConsole` 과 `TreeOrderDisplayButtonContainer` 컴포넌트는 아직 연결되어 있지 않다.
+이제 각 버튼에 이벤트 리스너를 달아줘야 한다.
+
+그런데, 만약 `App` 컴포넌트에서 모든 Tree 관련 컴포넌트와 이벤트를 처리해준다면,
+나중에 Trie 관련 컴포넌트와 기능을 추가하게 될 때 코드를 읽기가 매우 불편할 것이다.
+
+그래서 Tree 와 관련된 모든 컴포넌트와 기능을 `TreeView`라는 컴포넌트로 분리했다.
+Tree 데이터와 관련된 모든 로직은 최대한 TreeView 에서 관리한다.
+
+```javascript
+import BinaryTree from '../components/BinaryTree.js';
+import Title from '../components/Title.js';
+import TreeOrderDisplayButtonContainer from '../components/TreeOrderDisplayButtonContainer.js';
+import TreeOrderDisplayConsole from '../components/TreeOrderDisplayConsole.js';
+import DOM from '../consts/dom.js';
+import TREE_TRAVERSE from '../consts/tree.js';
+
+export default class TreeView {
+  tree = null;
+
+  constructor({ $target, treeData }) {
+    this.$target = $target;
+    this.tree = treeData;
+
+    this.initComponents();
+  }
+
+  initComponents() {
+    this.initWrapper();
+    this.initTitle();
+    this.initBinaryTree();
+    this.initTreeOrderDisplay();
+    this.initButtonContainer();
+  }
+
+  initWrapper() {
+    this.$wrapper = document.createElement('section');
+    this.$wrapper.className = DOM.WRAPPER.VIEW;
+    this.$target.appendChild(this.$wrapper);
+  }
+
+  initTitle() {
+    this.$title = new Title({
+      $target: this.$wrapper,
+      title: '과제1. 트리(Tree) 순회',
+    });
+  }
+
+  initBinaryTree() {
+    this.$binaryTree = new BinaryTree({ $target: this.$wrapper });
+    this.$binaryTree.setState(this.tree.root);
+  }
+
+  initTreeOrderDisplay() {
+    this.$treeOrderdisplay = new TreeOrderDisplayConsole({
+      $target: this.$wrapper,
+    });
+    this.$treeOrderdisplay.setState(this.makeTreeOrderDisplyState('LEVELORDER'));
+  }
+
+  initButtonContainer() {
+    this.$buttonContainer = new TreeOrderDisplayButtonContainer({
+      $target: this.$wrapper,
+      onClick: this.handleTreeButtonClick.bind(this),
+    });
+  }
+
+  getTreeTraversalOrder(type) {
+    if (type === TREE_TRAVERSE.LEVELORDER.NAME) return this.tree.levelOrder();
+    if (type === TREE_TRAVERSE.PREORDER.NAME) return this.tree.preOrder();
+    if (type === TREE_TRAVERSE.INORDER.NAME) return this.tree.inOrder();
+    if (type === TREE_TRAVERSE.POSTORDER.NAME) return this.tree.postOrder();
+  }
+
+  makeTreeOrderDisplyState(type) {
+    return {
+      name: TREE_TRAVERSE[type].TITLE,
+      order: this.getTreeTraversalOrder(TREE_TRAVERSE[type].NAME),
+    };
+  }
+
+  handleTreeButtonClick(e) {
+    const type = e.target.name.toUpperCase();
+    const treeOrderDisplayState = this.makeTreeOrderDisplyState(type);
+    this.$treeOrderdisplay.setState(treeOrderDisplayState);
+  }
+}
+```
+
+## 1. initComponents()
+
+TreeView 의 모든 컴포넌트를 초기화하는 로직이 모두 constructor 내부에 있다보니,
+constructor 의 코드가 너무 길어지고 가독성이 떨어졌다.
+그래서 컴포넌트를 초기화하는 로직을 initComponents()라는 함수로 따로 분리해주었다.
+
+```javascript
+initComponents() {
+  this.initWrapper();
+  this.initTitle();
+  this.initBinaryTree();
+  this.initTreeOrderDisplay();
+  this.initButtonContainer();
+}
+```
+
+## 2. handleTreeButtonClick()
+
+트리 순회 버튼의 클릭 이벤트를 handle 하는 함수이다.
+멘토님의 코드 리뷰를 반영하여, 트리 순회의 Type 에 따라 tree order 를 받아오도록 해보았다.
+
+```javascript
+getTreeTraversalOrder(type) {
+  if (type === TREE_TRAVERSE.LEVELORDER.NAME) return this.tree.levelOrder();
+  if (type === TREE_TRAVERSE.PREORDER.NAME) return this.tree.preOrder();
+  if (type === TREE_TRAVERSE.INORDER.NAME) return this.tree.inOrder();
+  if (type === TREE_TRAVERSE.POSTORDER.NAME) return this.tree.postOrder();
+}
+
+makeTreeOrderDisplyState(type) {
+  return {
+    name: TREE_TRAVERSE[type].TITLE,
+    order: this.getTreeTraversalOrder(TREE_TRAVERSE[type].NAME),
+  };
+}
+
+handleTreeButtonClick(e) {
+  const type = e.target.name.toUpperCase();
+  const treeOrderDisplayState = this.makeTreeOrderDisplyState(type);
+  this.$treeOrderdisplay.setState(treeOrderDisplayState);
+}
+```
+
+# 완성된 트리 순회 앱
+
+완성된 결과물은 다음과 같다.
+
+<p align="center">
+  <img src="/static/images/prgrms-dev-course/tree_traversal_ui.png" />
+</p>
+
+<p align="center">
+  <img src="/static/images/prgrms-dev-course/tree_traversal_demo.gif" />
+</p>
+
+# 느낀 점 / 아쉬웠던 점
+
+- 처음으로 Vanilla JavaScript 만 사용해서 앱을 구현해보았다.
+- React.js 나 Next.js 를 사용해서 개발하는 것과는 또 다른 재미가 있었다.
+  - DOM 을 직접 만들어 조작해야 하는 부분이라던가...
+- Vanilla JS 로 컴포넌트를 구현하는 것은 DOM 을 생성하고 추가해야 하는 부분들이 반복되어 나타나는 것 같다.
+  - 이 부분을 어떻게 다른 모듈로 분리하고 최적화해 나갈 수 있을 지를 더 고민해보고 싶다.
+- CSS 를 아직 잘 못 다뤄서 현재는 포화 이진 트리만 표현 가능하다는 점이 아쉬웠다.
+  - CSS 를 좀 더 공부해서 포화 이진 트리가 아닌 경우에도 트리를 출력할 수 있도록 수정해보고 싶다.
